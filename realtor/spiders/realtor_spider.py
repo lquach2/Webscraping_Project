@@ -83,7 +83,7 @@ class RealtorSpider(Spider):
 
 
             num_items +=1
-            if num_items <= 5:
+            if num_items <= 50:
                 yield Request(client.scrapyGet(full_property_url), self.parse_property, meta={'item':item})
             else: 
                 return

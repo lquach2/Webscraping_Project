@@ -14,7 +14,7 @@ class RealtorPipeline(object):
         return item
 
     def __init__(self):
-        self.filename = 'realtor_sf.csv'
+        self.filename = 'realtor.csv'
 
     def open_spider(self, spider):
         self.csvfile = open(self.filename, 'wb')
