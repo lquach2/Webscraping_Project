@@ -45,6 +45,11 @@ avgtax <- taxes %>%
     group_by(area) %>% 
     summarise(avgtax = mean(taxes, na.rm=TRUE))
 
+avgtax_year <- taxes %>% 
+    group_by(area, tax_year) %>% 
+    summarise(avgtax = mean(taxes, na.rm=TRUE))
+
+
 x <- br()
 realtor_income <- merge(avg_price_home, income, by="area")
 
@@ -116,6 +121,10 @@ ui <- fluidPage(
                               x,
                               plotOutput(
                                   outputId="avgtax",
+                                  height="600px"),
+                              x,
+                              plotOutput(
+                                  outputId="avgtax_year",
                                   height="600px"),
                               ))),
         
@@ -312,6 +321,18 @@ server <- function(input, output) {
             theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
             xlab(NULL)+
             theme(text = element_text(size=14))
+        
+    )
+    
+    output$avgtax_year <- renderPlot(
+        avgtax_year %>% 
+            ggplot(aes(x=tax_year, y=avgtax, group=area)) +             
+            geom_line(aes(color=area)) +
+            geom_point(aes(color=area)) +
+            theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+            theme(text = element_text(size=14)) +
+            xlab(NULL) +
+            ylab("Average Property Tax")
         
     )
     
