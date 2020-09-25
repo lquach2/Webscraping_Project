@@ -11,12 +11,15 @@ library(grid)
 library(wordcloud)
 library(wordcloud2)
 library(tm)
+library(reshape2)
 
 setwd("~/Desktop/realtor/Webscraping_Project")
 
 csv_files <- list.files(pattern = ".csv")
 
 realtor <- read.csv('./realtor.csv')
+
+
 realtor$price <- as.numeric(as.character(realtor$price))
 realtor$zip <- as.character(as.numeric(realtor$zip))
 realtor$city <- as.character(as.factor(realtor$city))
@@ -26,13 +29,32 @@ realtor$year_built <- as.Date(realtor$year_built, format ="%Y")
 
 population <- read.csv('./uscitypopdensity.csv')
 income <- read.csv('./most_populated_cities_income.csv') 
+income$median.income <- as.numeric(income$median.income)
 
-realtor_ <- na.omit(realtor)
+#realtor_ <- na.exclude(realtor)
 
 realtor_price_sqft <- realtor %>%
     select(., area, bath, bed, price, sqft, state, zip) %>% 
-    mutate(price_sqft = price/sqft) 
+    mutate(price_sqft = price/sqft, na.rm = TRUE) 
 
+taxes <- realtor %>%
+    select(., area, taxes_2015, taxes_2016, taxes_2017, taxes_2018, taxes_2019) %>%  
+    gather(tax_year,taxes, taxes_2015:taxes_2019) 
+
+avgtax <- taxes %>% 
+    group_by(area) %>% 
+    summarise(avgtax = mean(taxes, na.rm=TRUE))
+
+x <- br()
+realtor_income <- merge(avg_price_home, income, by="area")
+
+
+avg_price_home <- realtor %>% 
+    select(price, area, state) %>% 
+    mutate(avg_price_home = mean(price), area) 
+
+price_per_income <- realtor_income %>% 
+    mutate(price_per_median.income = (price/median.income))
 
 # Define UI for application that draws a histogram
 
@@ -43,19 +65,20 @@ ui <- fluidPage(
     navlistPanel(
         "Table of Contents",
         tabPanel("Overview",
-                 p("Exploration of Cost of living per Major USA Cities"),
+                 p("Exploration of Cost of living per Major USA Cities", style="font-size:24px"),
+                 x, p("Majority of the cities explored are priced below 2.5million"),
                  plotOutput(outputId="price_distribution",
-                            heigh="400px"),
+                            height="600px"),
+                 x,
                  plotOutput(
                          outputId = "price_area",
-                         height = "400px"),
-                 #p(selectizeInput(inputId = "state",
-                                  #label = "state",
-                                  #choices = unique(realtor$state))), 
-                 p(plotOutput(outputId="price_sqft",
-                              height = "400px")),
+                         height = "600px"),
+                 x,
                  p(plotOutput(outputId="avg_sqft",
-                              height="400px"))),
+                              height = "600px")),
+                 x,
+                 p(plotOutput(outputId="price_sqft",
+                              height ="600px"))),
 
         tabPanel("Deeper Dive",
                  tabsetPanel(
@@ -63,16 +86,16 @@ ui <- fluidPage(
                         p(selectizeInput(inputId = "area",
                                     label = "area",
                                     choices = unique(realtor_price_sqft$area)),
-                        p(plotOutput(outputId="costsqft_zip",
-                                height="400px"))),
-                        p(plotOutput(outputId = "realtor_num_bed_baths",
-                                height="400px")),
-                        p(plotOutput(outputId = "garage",
-                                height="400px")),
-                        p(plotOutput(outputId="year_built",
-                                height="400px")),
+                        x, p(plotOutput(outputId="costsqft_zip",
+                                height="600px"))),
+                        x, p(plotOutput(outputId = "realtor_num_bed_baths",
+                                height="600px")),
+                        x, p(plotOutput(outputId = "garage",
+                                height="600px")),
+                        x, p(plotOutput(outputId="year_built",
+                                height="600px")),
                         p(plotOutput(outputId="year_built_sqft",
-                                height="400px"))))),
+                                height="600px"))))),
         
         tabPanel("Popular Description",
                  tabsetPanel(
@@ -82,17 +105,35 @@ ui <- fluidPage(
                               wordcloud2Output(
                                   outputId = "wordcloud",
                                   width ="100%",
-                                  height = "400px")))),
+                                  height = "600px")))),
         tabPanel("Taxes",
                  tabsetPanel(
                      tabPanel("Input text",
-                              p("Input text", style="font-size:17px")))),
+                              p("Input text", style="font-size:17px"),
+                              plotOutput(
+                                  outputId = "taxes",
+                                  height = "800px"),
+                              x,
+                              plotOutput(
+                                  outputId="avgtax",
+                                  height="600px"),
+                              ))),
         
         tabPanel("Salary v Cost of Living",
                  tabsetPanel(
                      tabPanel("Input text",
-                              p("Input text", style="font-size:17px"))))
-        
+                              p("Input text", style="font-size:17px"),
+                              plotOutput(
+                                  outputId="median.income",
+                                  height="600px"),
+                              x,
+                              plotOutput(
+                                  outputId = "income",
+                                  height = "600px"),
+                              x, p(plotOutput(
+                                  outputId="price_income",
+                                  height="600px"),
+                              ))))
     )
 )
 
@@ -101,12 +142,16 @@ ui <- fluidPage(
 
 server <- function(input, output) { 
 
+#Overview
+    
     output$price_distribution <- renderPlot(
-        realtor %>% 
+        realtor_ %>% 
             ggplot(aes(price)) +
             geom_histogram(aes(fill=area)) +
-            xlab(NULL) +
-            ggtitle("Distribution of Cost of Real Estate Homes in a Few Major Cities")
+            xlab("Price of Real Estate") +
+            ggtitle("Distribution of Cost of Real Estate Homes in Select Cities") +
+            theme(text = element_text(size=14))
+        
     )
     
     output$price_area <- renderPlot(
@@ -114,8 +159,10 @@ server <- function(input, output) {
         ggplot(aes(x=reorder(area, price), price)) +
         geom_boxplot(aes(fill=area)) +
         coord_flip() +
+        ylab("Price of Real Estate ($)") +
         xlab(NULL) +
-        ggtitle("Distribution of Cost of Real Estate Homes in a Few Major Cities")
+        ggtitle("Distribution of Cost of Real Estate Homes in Select Cities")+
+        theme(text = element_text(size=14))
     )
     
 
@@ -125,7 +172,10 @@ server <- function(input, output) {
             geom_boxplot(aes(fill=area)) +
             coord_flip() +
             xlab(NULL) +
-            ggtitle("Distribution of Cost of Real Estate Homes per Sqft")
+            ylab("Price ($) per sqft") +
+            ggtitle("Distribution of Cost of Real Estate Homes per Sqft")+
+            theme(text = element_text(size=14))
+        
     )
     
     
@@ -135,8 +185,13 @@ server <- function(input, output) {
             geom_boxplot(aes(fill=area)) +
             coord_flip() +
             xlab(NULL) +
-            ggtitle("Average Sqft of Homes in Various Cities")
+            ylab("Sqft")+
+            ggtitle("Average Sqft of Homes in Various Cities")+
+            theme(text = element_text(size=14))
+        
     )
+    
+#Deeper Dive
     
     output$costsqft_zip <- renderPlot(
         realtor_price_sqft %>%
@@ -145,13 +200,16 @@ server <- function(input, output) {
             geom_boxplot(aes(color=zip)) + 
             theme(legend.position='right') +
             scale_fill_manual(values = c('tomato', 'lightseagreen'))+        
-            ggtitle("Price/Sqft by Zipcode") +
+            ggtitle("Price($) per Sqft by Zipcode") +
             theme(axis.text.x=element_text(angle=45)) +
-            xlab("Zipcode")
+            xlab("Zipcode")+
+            ylab("Price ($) per Sqft") +
+            theme(text = element_text(size=14))
+        
     )
     
 
-    realtor_num_bed_baths <- realtor_ %>% 
+    realtor_num_bed_baths <- realtor %>% 
             select(area, bed, bath, sqft) %>% 
             gather(bed_bath, number_BedBath, bed:bath) 
 
@@ -162,7 +220,11 @@ server <- function(input, output) {
             geom_boxplot(aes(fill=bed_bath)) + 
             geom_jitter(aes(color=bed_bath), alpha = 0.3) +
             ggtitle("Distribution of bed/baths by area") +
-            coord_flip()
+            ylab("Number of Bed and Baths")+
+            xlab(NULL) +
+            coord_flip()+
+            theme(text = element_text(size=14))
+        
     )
 
     
@@ -173,6 +235,8 @@ server <- function(input, output) {
             geom_jitter(aes(color=bed_bath), alpha = 0.3) +
             coord_flip()
     )
+    
+#Popular Description
     
     description <- realtor$description
     
@@ -198,15 +262,17 @@ server <- function(input, output) {
             wordcloud2(size=0.5, color='random-dark')
     )
     
-    realtor_detailed <- realtor %>% 
-        select(., garage_space, year_built, area, price, sqft)
     
     output$garage <- renderPlot(
-        realtor_detailed %>% 
+        realtor %>% 
             ggplot(aes(x=area, y=garage_space)) +
             geom_boxplot(aes(fill=area)) + 
-            geom_jitter(aes(color=area), alpha = 0.3) +
-            coord_flip()
+            #geom_jitter(aes(color=area), alpha = 0.3) +
+            coord_flip() +
+            xlab(NULL) +
+            ylab("Garage")+
+            theme(text = element_text(size=14))
+        
     
     )
     
@@ -217,24 +283,89 @@ server <- function(input, output) {
             ggplot(aes(x=year_built, y=area)) +
             geom_boxplot(aes(fill=area)) + 
             geom_jitter(aes(color=area), alpha = 0.3) +
-            #scale_fill_manual(values = c('tomato', 'lightseagreen'))+
-            #xlab(NULL) + ylab("Salary") + ggtitle("Distribution of Med Starting and Mid Career Salaries") +
-            #scale_y_continuous()+
-            scale_x_date(breaks = pretty_breaks(10))
+            scale_x_date(breaks = pretty_breaks(10))+
+            xlab("Year Built") +
+            ylab(NULL)+
+            theme(text = element_text(size=14))
+        
 
     )
     
     output$year_built_sqft <- renderPlot(
-        realtor_detailed %>% 
-            ggplot(aes(x=sqft, y=year_built)) +
+        realtor %>% 
+            ggplot(aes(x=year_built, y=sqft)) +
             geom_boxplot(aes(fill=area)) + 
-            geom_jitter(aes(color=area), alpha = 0.3)
-            #scale_fill_manual(values = c('tomato', 'lightseagreen'))+
-            #xlab(NULL) + ylab("Salary") + ggtitle("Distribution of Med Starting and Mid Career Salaries") +
-            #scale_y_continuous()+
+            scale_x_date(breaks= pretty_breaks(10))+
+            theme(text = element_text(size=14))
+        
+            
 
     )
     
+#Taxes    
+    
+    output$taxes <- renderPlot(
+        taxes %>% 
+            ggplot(aes(x = tax_year, y = taxes)) +
+            geom_boxplot(aes(color=area)) +
+            facet_wrap(facets=vars(area)) +
+            theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+            xlab(NULL)+
+            theme(text = element_text(size=14))
+        
+    )
+    
+    output$avgtax <- renderPlot(
+        avgtax %>% 
+            ggplot(aes(x=area, y=avgtax)) +             
+            geom_bar(stat="identity") +
+            theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+            theme(text = element_text(size=14)) +
+            xlab(NULL) +
+            ylab("Average Property Tax")
+        
+        
+    )
+    
+#Salary v Cost of Living
+    
+    output$median.income <- renderPlot(
+        realtor_income %>% 
+            ggplot(aes(x=area, y=median.income)) +
+            geom_bar(stat="identity") +
+            xlab(NULL) +
+            ylab("Median Income ($)") +
+            scale_y_continuous(limits=c(0,8E6)) +
+            ggtitle("Median Income in Various Cities") +
+            theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+            theme(text = element_text(size=14))
+            
+    )
+    
+    output$income <- renderPlot(
+        realtor_income %>% 
+            ggplot(aes(x=reorder(median.income, price), price)) +
+            geom_line(aes(color=area)) +
+            ggtitle("Price of Real Estate vs. Median Income in Select Cities") +
+            theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+            theme(text = element_text(size=14)) +
+            xlab(NULL)+
+            ylab("Price of Real Estate")
+    
+    
+    )
+    
+    output$price_income <- renderPlot(
+        price_per_income %>% 
+            ggplot(aes(x=reorder(area, price_per_median.income), price_per_median.income)) +
+            geom_boxplot(aes(color=area))+
+            xlab(NULL) +
+            ylab("Price of Real Estate / Median Income") +
+            ggtitle("Price of Real Estate per Median Income in Select Cities") +
+            theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+            theme(text = element_text(size=14))
+        
+    )
     
 }
 
