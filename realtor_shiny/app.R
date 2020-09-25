@@ -17,7 +17,7 @@ setwd("~/Desktop/realtor/Webscraping_Project")
 
 csv_files <- list.files(pattern = ".csv")
 
-realtor <- read.csv('./realtor.csv')
+realtor <- read.csv('./realtor.csv', header=T, na.strings=c("","NA"))
 
 
 realtor$price <- as.numeric(as.character(realtor$price))
@@ -49,14 +49,20 @@ avgtax_year <- taxes %>%
     group_by(area, tax_year) %>% 
     summarise(avgtax = mean(taxes, na.rm=TRUE))
 
+avg.real.estate <- realtor %>% 
+    group_by(area) %>% 
+    summarise(avg.real.estate = mean(price))
 
+real_estate.income <- merge(avg.real.estate, income, by ="area")
+    
 x <- br()
-realtor_income <- merge(avg_price_home, income, by="area")
-
 
 avg_price_home <- realtor %>% 
     select(price, area, state) %>% 
     mutate(avg_price_home = mean(price), area) 
+
+realtor_income <- merge(avg_price_home, income, by="area")
+
 
 price_per_income <- realtor_income %>% 
     mutate(price_per_median.income = (price/median.income))
@@ -100,7 +106,15 @@ ui <- fluidPage(
                         x, p(plotOutput(outputId="year_built",
                                 height="600px")),
                         p(plotOutput(outputId="year_built_sqft",
-                                height="600px"))))),
+                                height="600px"))),
+                     
+                     tabPanel("Property Types",
+                              p("input text", style="font-size:17px"),
+                              p(plotOutput(outputId="property_type",
+                                           height="600px")),
+                              x,
+                              p(plotOutput(outputId="property_price",
+                                           height="600px"))))),
         
         tabPanel("Popular Description",
                  tabsetPanel(
@@ -154,14 +168,14 @@ server <- function(input, output) {
 #Overview
     
     output$price_distribution <- renderPlot(
-        realtor_ %>% 
+        realtor %>% 
             ggplot(aes(price)) +
             geom_histogram(aes(fill=area)) +
             xlab("Price of Real Estate") +
             ggtitle("Distribution of Cost of Real Estate Homes in Select Cities") +
             theme(text = element_text(size=14))
         
-    )
+    )    
     
     output$price_area <- renderPlot(
         realtor %>% 
@@ -244,6 +258,29 @@ server <- function(input, output) {
             geom_jitter(aes(color=bed_bath), alpha = 0.3) +
             coord_flip()
     )
+#Property Type
+
+    output$property_type <- renderPlot(
+        realtor %>% 
+            ggplot(aes(property_type)) +
+            geom_histogram(stat="count") +
+            xlab(NULL) +
+            scale_y_continuous(limits=c(0,200)) +
+            ggtitle("Distribution of Cost of Real Estate Homes in Select Cities") +
+            theme(axis.text.x=element_text(angle=90, vjust=0.5, hjust=1)) +
+            theme(text = element_text(size=14))
+        
+    )
+    
+    output$property_price <- renderPlot(
+        realtor %>% 
+            ggplot(aes(x=area, y=price)) +
+            geom_bar(aes(fill=property_type), stat="identity")+
+            xlab(NULL) +
+            ggtitle("Distribution of Cost of Real Estate Homes in Select Cities") +
+            theme(axis.text.x=element_text(angle=90, vjust=0.5, hjust=1)) +
+            theme(text = element_text(size=14))
+    )
     
 #Popular Description
     
@@ -291,7 +328,6 @@ server <- function(input, output) {
         realtor %>% 
             ggplot(aes(x=year_built, y=area)) +
             geom_boxplot(aes(fill=area)) + 
-            geom_jitter(aes(color=area), alpha = 0.3) +
             scale_x_date(breaks = pretty_breaks(10))+
             xlab("Year Built") +
             ylab(NULL)+
@@ -364,13 +400,14 @@ server <- function(input, output) {
     )
     
     output$income <- renderPlot(
-        realtor_income %>% 
-            ggplot(aes(x=reorder(median.income, price), price)) +
-            geom_line(aes(color=area)) +
+        real_estate.income %>% 
+            ggplot(aes(x=reorder(median.income, avg.real.estate), avg.real.estate)) +
+            geom_bar(aes(fill=area), stat="identity") +
             ggtitle("Price of Real Estate vs. Median Income in Select Cities") +
             theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
             theme(text = element_text(size=14)) +
             xlab(NULL)+
+            #scale_x_continuous() +
             ylab("Price of Real Estate")
     
     
