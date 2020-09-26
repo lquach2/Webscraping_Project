@@ -185,7 +185,14 @@ ui <- fluidPage(
                                   height="600px")),
                               x,
                               p("The price of real estate per yearly median income is highest in California cities and NYC. LA would probably be
-                                the most difficult place to buy real estate based on median income. Cities like Charlotte and Phoenix have relative low home price to income ratio.", stlye = "font-size:14px")
+                                the most difficult place to buy real estate based on median income.
+                                In summary, depending on what you're looking for, whether it's a family home, condo, or cost of living, the best values
+                                are cities like Charlotte where home price to income ratio is low, you have a mix selection of condos, single family homes, steady
+                                to low property taxes, a selection of newer homes, decent sqft, low price/sqft and a decent median income.", stlye = "font-size:14px"),
+                              x,
+                                p("Cities like LA are the worse value, as cost per sqft is highest in all the cities evaluated, higher property taxes, mid to high price/sqft,
+                                high home price to income ratio while also having a similar median income to Charlotte. However, the only benefit to residing
+                                in LA based on the observed evaluation might be the high number of bedrooms and bathrooms available.", stlye = "font-size:14px")
                               )))
     )
 )
@@ -305,9 +312,10 @@ server <- function(input, output) {
     
     output$property_price <- renderPlot(
         realtor %>% 
-            ggplot(aes(x=area, y=price)) +
-            geom_bar(aes(fill=property_type), stat="identity")+
+            ggplot(aes(area)) +
+            geom_histogram(aes(fill=property_type), stat="count")+
             xlab(NULL) +
+            scale_y_continuous(limits=c(0,50)) +
             ggtitle("Distribution of Cost of Real Estate Homes in Select Cities") +
             theme(axis.text.x=element_text(angle=90, vjust=0.5, hjust=1)) +
             theme(text = element_text(size=14))
