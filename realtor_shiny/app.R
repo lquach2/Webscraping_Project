@@ -53,12 +53,13 @@ avg.real.estate <- realtor %>%
     group_by(area) %>% 
     summarise(avg.real.estate = mean(price))
 
-real_estate.income <- merge(avg.real.estate, income, by ="area")
+real_estate.income <- merge(avg.real.estate, income, by ="area") 
     
 x <- br()
 
 avg_price_home <- realtor %>% 
     select(price, area, state) %>% 
+    group_by(area) %>% 
     mutate(avg_price_home = mean(price), area) 
 
 realtor_income <- merge(avg_price_home, income, by="area")
@@ -71,92 +72,121 @@ price_per_income <- realtor_income %>%
 
 ui <- fluidPage(
     
-    titlePanel("Guide to Living in Large Cities"),
+    titlePanel("Limited Guide to Living in Selected Large Cities"),
     
     navlistPanel(
         "Table of Contents",
         tabPanel("Overview",
-                 p("Exploration of Cost of living per Major USA Cities", style="font-size:24px"),
-                 x, p("Majority of the cities explored are priced below 2.5million"),
+                 p("Exploration of Living in Selected USA Cities", style="font-size:20px"),
+                 x, 
                  plotOutput(outputId="price_distribution",
                             height="600px"),
+                 p("Majority of the cities explored are priced below 2.5 million", style="font-size:14px"),
                  x,
                  plotOutput(
                          outputId = "price_area",
                          height = "600px"),
+                 p("The average price of real estate is highest in los angeles, with SJ and SF coming in second. 
+                   The houses in Charlotte, Philadelphia, and Phoneix have a more narrow distribution, with most houses being price similarly. 
+                   In LA, SF, NYC, SJ, you can find larger distribution of priced homes.", style="font-size:14px"),
                  x,
                  p(plotOutput(outputId="avg_sqft",
                               height = "600px")),
+                 p("You can find the most sqft in LA, Denver, Houston, Phoenix and Charlotte.", style="font-size:14px"),
                  x,
                  p(plotOutput(outputId="price_sqft",
-                              height ="600px"))),
+                              height ="600px")),
+                 p("By sqft, you pay the most per sqft in SF, followed by NYC, LA, Seattle, SJ and DC.", style="font-size:14px")),
 
         tabPanel("Deeper Dive",
                  tabsetPanel(
-                     tabPanel("Input text",
+                     tabPanel("Property Details",
                         p(selectizeInput(inputId = "area",
                                     label = "area",
                                     choices = unique(realtor_price_sqft$area)),
                         x, p(plotOutput(outputId="costsqft_zip",
-                                height="600px"))),
+                                height="600px")),
+                        p("Viewing the most expensive neighborhoods by zip code to live from those that were scraped. As a SF resident,
+                          the most costly per sqft happens to be near the water.", style="font-size:14px")),
                         x, p(plotOutput(outputId = "realtor_num_bed_baths",
                                 height="600px")),
+                        p("On average, majority of real estate has less than 3 baths and 4 bedrooms. Cities like LA have close
+                          to the same number of beds as baths. Cities like Charlotte and Phoenix prioritizes bedrooms over baths.
+                          Places with least amount of baths are likely to be in DC, SF, and NYC.", style="font-size:14px"),
                         x, p(plotOutput(outputId = "garage",
                                 height="600px")),
+                        p("Many listings did not include garage space but the ones that did are places like Philadelphia, Denver and Chicago.", style = "font size:14px"),
                         x, p(plotOutput(outputId="year_built",
                                 height="600px")),
-                        p(plotOutput(outputId="year_built_sqft",
-                                height="600px"))),
+                        p("Majority of the newer houses are in Charlotte, Houston, Phoenix and SJ while the older houses are in Philadelphia,
+                          NYC, and DC. Chicago has the biggest range of old to new houses while Charlotte mostly have newer houses.", style="font-size:14px"),
+                        x, p(plotOutput(outputId="year_built_sqft",
+                                height="600px")),
+                        p("The observed distribution of sqft decreases as time goes on,",style="font-size:14px")),
                      
                      tabPanel("Property Types",
-                              p("input text", style="font-size:17px"),
+                              p("Types of Properties", style="font-size:17px"),
                               p(plotOutput(outputId="property_type",
                                            height="600px")),
+                              p("Majority of the listings scraped are single family homes and townhouses/condos.", style="font-size:14px"),
                               x,
                               p(plotOutput(outputId="property_price",
-                                           height="600px"))))),
+                                           height="600px")),
+                              x,
+                              p("Majority of the listings in LA are single family homes while in NYC, it’s mostly co-ops and condos.", style="font-size:14px")))),
         
         tabPanel("Popular Description",
                  tabsetPanel(
-                     tabPanel("Input text",
-                              p("Input text", style="font-size:17px"), 
-                              p("Description Frequency"),
+                     tabPanel("Popular Description",
+                              p("Description Frequency", style="font-size:17px"), 
+                              p("Most frequently used words in listing descriptions."),
                               wordcloud2Output(
                                   outputId = "wordcloud",
                                   width ="100%",
                                   height = "600px")))),
         tabPanel("Taxes",
                  tabsetPanel(
-                     tabPanel("Input text",
-                              p("Input text", style="font-size:17px"),
+                     tabPanel("Property Taxes",
+                              p("Taxes", style="font-size:17px"),
                               plotOutput(
                                   outputId = "taxes",
                                   height = "800px"),
                               x,
+                              p("For the past 5 years, real estate tax has remain pretty steady in their respective city. 
+                                The largest distribution in real estate tax resides LA and SF.", style="font-size:14px"),
                               plotOutput(
                                   outputId="avgtax",
                                   height="600px"),
+                              p("SF pays the most property tax on average followed by LA and NYC.", stlye="font-size:14px"),
                               x,
                               plotOutput(
                                   outputId="avgtax_year",
                                   height="600px"),
+                              x,
+                              p("On average, taxes have steadily increased except for SF and LA. 
+                                SF which jumped >30% more in taxes since 2015.", style="font-size:14px")
                               ))),
         
-        tabPanel("Salary v Cost of Living",
+        tabPanel("Median Income v Cost of Living",
                  tabsetPanel(
-                     tabPanel("Input text",
-                              p("Input text", style="font-size:17px"),
+                     tabPanel("Income",
+                              p("Income vs. COL", style="font-size:17px"),
                               plotOutput(
                                   outputId="median.income",
                                   height="600px"),
+                              p("Highest median income in selected cities are in SF and SJ, with the lowest in Philadelphia.", style="font-size:14px"),
                               x,
                               plotOutput(
-                                  outputId = "income",
+                                  outputId = "price_income",
                                   height = "600px"),
-                              x, p(plotOutput(
-                                  outputId="price_income",
-                                  height="600px"),
-                              ))))
+                              x, 
+                              p(plotOutput(
+                                  outputId="income",
+                                  height="600px")),
+                              x,
+                              p("The price of real estate per yearly median income is highest in California cities and NYC. LA would probably be
+                                the most difficult place to buy real estate based on median income. Cities like Charlotte and Phoenix have relative low home price to income ratio.", stlye = "font-size:14px")
+                              )))
     )
 )
 
@@ -171,7 +201,7 @@ server <- function(input, output) {
         realtor %>% 
             ggplot(aes(price)) +
             geom_histogram(aes(fill=area)) +
-            xlab("Price of Real Estate") +
+            xlab("Price of Real Estate ($)") +
             ggtitle("Distribution of Cost of Real Estate Homes in Select Cities") +
             theme(text = element_text(size=14))
         
@@ -182,6 +212,7 @@ server <- function(input, output) {
         ggplot(aes(x=reorder(area, price), price)) +
         geom_boxplot(aes(fill=area)) +
         coord_flip() +
+        scale_y_continuous(limits=c(0,5E6))+
         ylab("Price of Real Estate ($)") +
         xlab(NULL) +
         ggtitle("Distribution of Cost of Real Estate Homes in Select Cities")+
@@ -239,13 +270,13 @@ server <- function(input, output) {
     
     output$realtor_num_bed_baths <- renderPlot(
         realtor_num_bed_baths %>% 
-            ggplot(aes(x=area, y=number_BedBath)) +
+            ggplot(aes(x=number_BedBath, y = area)) +
             geom_boxplot(aes(fill=bed_bath)) + 
             geom_jitter(aes(color=bed_bath), alpha = 0.3) +
             ggtitle("Distribution of bed/baths by area") +
-            ylab("Number of Bed and Baths")+
-            xlab(NULL) +
-            coord_flip()+
+            ylab(NULL)+
+            xlab("Number of Bed and Baths per Unit") +
+            scale_x_continuous(limits=c(0,8)) +
             theme(text = element_text(size=14))
         
     )
@@ -316,7 +347,8 @@ server <- function(input, output) {
             #geom_jitter(aes(color=area), alpha = 0.3) +
             coord_flip() +
             xlab(NULL) +
-            ylab("Garage")+
+            ylab("Garage Space")+
+            ggtitle("Garage Space Offered") +
             theme(text = element_text(size=14))
         
     
@@ -331,6 +363,7 @@ server <- function(input, output) {
             scale_x_date(breaks = pretty_breaks(10))+
             xlab("Year Built") +
             ylab(NULL)+
+            ggtitle("Real Estate in Selected Cities and Year Built")+
             theme(text = element_text(size=14))
         
 
@@ -341,6 +374,8 @@ server <- function(input, output) {
             ggplot(aes(x=year_built, y=sqft)) +
             geom_boxplot(aes(fill=area)) + 
             scale_x_date(breaks= pretty_breaks(10))+
+            ggtitle("Real Estate Year Built vs. Sqft")+
+            xlab("Year Built")+
             theme(text = element_text(size=14))
         
             
@@ -374,7 +409,7 @@ server <- function(input, output) {
     
     output$avgtax <- renderPlot(
         avgtax %>% 
-            ggplot(aes(x=area, y=avgtax)) +             
+            ggplot(aes(x=reorder(area,avgtax), avgtax)) +             
             geom_bar(stat="identity") +
             theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
             theme(text = element_text(size=14)) +
@@ -385,14 +420,14 @@ server <- function(input, output) {
     )
     
 #Salary v Cost of Living
-    
+
     output$median.income <- renderPlot(
-        realtor_income %>% 
-            ggplot(aes(x=area, y=median.income)) +
+        income %>% 
+            ggplot(aes(x=reorder(area, median.income), median.income)) +
             geom_bar(stat="identity") +
             xlab(NULL) +
             ylab("Median Income ($)") +
-            scale_y_continuous(limits=c(0,8E6)) +
+            scale_y_continuous(limits=c(0,120000)) +
             ggtitle("Median Income in Various Cities") +
             theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
             theme(text = element_text(size=14))
@@ -407,7 +442,7 @@ server <- function(input, output) {
             theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
             theme(text = element_text(size=14)) +
             xlab(NULL)+
-            #scale_x_continuous() +
+            #scale_x_continuous(limits=c(40000,120000)) +
             ylab("Price of Real Estate")
     
     
@@ -421,6 +456,7 @@ server <- function(input, output) {
             ylab("Price of Real Estate / Median Income") +
             ggtitle("Price of Real Estate per Median Income in Select Cities") +
             theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+            scale_y_continuous(limits=c(0,100)) +
             theme(text = element_text(size=14))
         
     )
